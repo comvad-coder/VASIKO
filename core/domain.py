@@ -57,10 +57,14 @@ class TaskSpec:
     project: EntityRef | None = None
     products: list[EntityRef] = field(default_factory=list)
     workspaces: list[EntityRef] = field(default_factory=list)
+    agents: list[EntityRef] = field(default_factory=list)
+    tools: list[str] = field(default_factory=list)
+    limits: dict[str, Any] = field(default_factory=dict)
     plan: str = ""
     checkpoints: list[str] = field(default_factory=list)
     artifacts: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    qa_result: str = ""
     next_step: str = ""
     created_at: str = field(default_factory=utc_now)
     updated_at: str = field(default_factory=utc_now)
