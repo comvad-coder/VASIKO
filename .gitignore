@@ -8,3 +8,5 @@ admin/gradio_admin/runtime/backups/*.json
 tasks/records/*.json
 memory/*/records.jsonl
 memory/exports/*.json
+backups/*/*.tar.gz
+backups/*/*.tar.gz.manifest.json
