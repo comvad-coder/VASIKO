@@ -16,3 +16,7 @@
 - даты создания и обновления.
 
 Переходы статусов проверяются `core.task_manager.TRANSITIONS`. Возобновление прерванной задачи использует последний сохранённый checkpoint.
+
+## Current task
+
+`palmistry-pilot` находится в `tasks/palmistry-pilot/`. Это отдельная задача продвижения продукта Palm, связанная с project `palm-promotion`, product `palm`, workspace `palm-site` и модулем `promotion_engine`. Текущий статус — `blocked`: URL или ZIP Palm ещё не передан, поэтому внешние действия не разрешены.

@@ -1,0 +1,27 @@
+{
+  "task_id": "palmistry-pilot",
+  "objective": "Подготовить и согласовать план продвижения продукта Palm без внешних действий до approval.",
+  "status": "blocked",
+  "project": {"entity_type": "project", "entity_id": "palm-promotion"},
+  "products": [{"entity_type": "product", "entity_id": "palm"}],
+  "workspaces": [{"entity_type": "workspace", "entity_id": "palm-site"}],
+  "modules": [{"entity_type": "module", "entity_id": "promotion_engine"}],
+  "agents": [{"entity_type": "agent", "entity_id": "planner"}, {"entity_type": "agent", "entity_id": "product_analyst"}],
+  "tools": ["promotion_engine", "local_task_manager"],
+  "limits": {
+    "external_api_calls": 0,
+    "external_publications": 0,
+    "paid_actions": 0,
+    "messages_sent": 0,
+    "credentials_access": false,
+    "requires_user_approval": true
+  },
+  "plan": "plan.md",
+  "checkpoints": [],
+  "artifacts": [],
+  "errors": ["Palm product URL or ZIP workspace has not been supplied."],
+  "qa_result": "metadata_and_plan_only",
+  "next_step": "Передать подтверждённый URL Palm или ZIP проекта через Gradio Admin, затем выполнить локальный анализ и обновить draft plan.",
+  "created_at": "2026-11-02T20:20:00+03:00",
+  "updated_at": "2026-11-02T20:20:00+03:00"
+}

@@ -1,0 +1,13 @@
+{
+  "workspace_id": "palm-site",
+  "product_id": "palm",
+  "task_id": "palmistry-pilot",
+  "status": "not_imported",
+  "source": null,
+  "source_kind": null,
+  "original_archive": null,
+  "extracted_path": null,
+  "changes_enabled": false,
+  "release_enabled": false,
+  "note": "Metadata stub only; Palm site URL or ZIP has not been supplied."
+}
