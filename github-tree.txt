@@ -64,6 +64,7 @@ core/tests/test_task_manager.py
 docs/VASIKO memory.md
 docs/vasiko-architecture.md
 docs/vasiko-architecture.md.pre-block1
+github-tree.txt
 integrations/README.md
 integrations/VASIKO integrations.md
 integrations/__init__.py
