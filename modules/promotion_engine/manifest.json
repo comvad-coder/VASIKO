@@ -1,0 +1,17 @@
+{
+  "module_id": "promotion_engine",
+  "name": "Promotion Engine",
+  "version": "0.1.0",
+  "purpose": "Create local, reviewable promotion strategies and content plans for a task.",
+  "status": "manifest",
+  "required_skills": ["planning", "product-analysis"],
+  "allowed_agents": ["planner", "product_analyst", "content"],
+  "required_integrations": [],
+  "input_contracts": ["promotion-brief"],
+  "output_contracts": ["promotion-plan"],
+  "permissions": ["create_draft", "request_approval"],
+  "budget_limits": {"external_spend": 0, "max_external_calls": 0},
+  "test_status": "not_run",
+  "activation_status": "inactive",
+  "rollback_version": ""
+}
