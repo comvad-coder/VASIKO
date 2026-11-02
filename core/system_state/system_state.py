@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .domain import HealthCheck
+from ..domain import HealthCheck
 
 
 @dataclass

@@ -12,7 +12,7 @@ import uuid
 from dataclasses import asdict
 from pathlib import Path
 
-from .domain import EntityRef, EntityType, TaskSpec, TaskStatus, utc_now
+from ..domain import EntityRef, EntityType, TaskSpec, TaskStatus, utc_now
 
 TASK_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 TRANSITIONS: dict[TaskStatus, frozenset[TaskStatus]] = {
