@@ -55,3 +55,24 @@ def test_limits_and_duplicate_workspace_are_rejected(tmp_path):
     small_manager.import_zip(small, "demo")
     with pytest.raises(WorkspaceError, match="уже существует"):
         small_manager.import_zip(small, "demo")
+
+
+def test_metadata_stub_can_be_replaced_and_is_backed_up(tmp_path):
+    workspace_root = tmp_path / "workspaces"
+    workspace = workspace_root / "palm-site"
+    workspace.mkdir(parents=True)
+    (workspace / "workspace.json").write_text(
+        '{"workspace_id":"palm-site","product_id":"palm","status":"not_imported",'
+        '"source":null,"changes_enabled":false,"release_enabled":false}\n',
+        encoding="utf-8",
+    )
+    archive = tmp_path / "palm.zip"
+    make_zip(archive, {"package.json": "{}", "src/index.js": "ok"})
+
+    manifest = WorkspaceManager(workspace_root).import_zip(
+        archive, "palm-site", "palm", allow_metadata_stub=True
+    )
+
+    assert manifest.status == "imported"
+    assert (workspace / "extracted" / "src" / "index.js").read_text() == "ok"
+    assert (workspace / "backups" / "pre-import-workspace.json").is_file()

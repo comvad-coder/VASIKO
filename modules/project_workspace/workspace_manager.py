@@ -69,7 +69,13 @@ class WorkspaceManager:
         self._validate_id(workspace_id)
         return self.root / workspace_id
 
-    def import_zip(self, archive: str | Path, workspace_id: str, product_id: str = "external_product") -> WorkspaceManifest:
+    def import_zip(
+        self,
+        archive: str | Path,
+        workspace_id: str,
+        product_id: str = "external_product",
+        allow_metadata_stub: bool = False,
+    ) -> WorkspaceManifest:
         archive = Path(archive)
         self._validate_id(workspace_id)
         self._validate_id(product_id)
@@ -80,11 +86,21 @@ class WorkspaceManager:
             stacks = sorted({STACK_FILES[name] for name in stack_files if name in STACK_FILES})
 
         target = self.workspace_path(workspace_id)
+        metadata_stub: dict | None = None
+        metadata_backup: Path | None = None
         if target.exists() and any(target.iterdir()):
-            raise WorkspaceError(f"Workspace уже существует и не пуст: {workspace_id}")
+            if not allow_metadata_stub or not self._is_metadata_stub(target, workspace_id, product_id):
+                raise WorkspaceError(f"Workspace уже существует и не пуст: {workspace_id}")
+            metadata_stub = json.loads((target / "workspace.json").read_text(encoding="utf-8"))
+            metadata_backup = target.parent / f".{workspace_id}.pre-import-workspace.json"
+            shutil.copy2(target / "workspace.json", metadata_backup)
         target.mkdir(parents=True, exist_ok=True)
         for directory in ("original", "extracted", "analysis", "proposed-changes", "tests", "preview", "backups", "releases"):
             (target / directory).mkdir(parents=True, exist_ok=True)
+        if metadata_stub is not None:
+            (target / "backups" / "pre-import-workspace.json").write_text(
+                json.dumps(metadata_stub, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
 
         original = target / "original" / archive.name
         shutil.copy2(archive, original)
@@ -104,7 +120,14 @@ class WorkspaceManager:
                     os.chmod(destination, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
         except (OSError, zipfile.BadZipFile) as exc:
             shutil.rmtree(target, ignore_errors=True)
+            if metadata_backup is not None:
+                target.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(metadata_backup, target / "workspace.json")
+                metadata_backup.unlink(missing_ok=True)
             raise WorkspaceError(f"Распаковка workspace не выполнена: {exc}") from exc
+        finally:
+            if metadata_backup is not None and metadata_backup.exists():
+                metadata_backup.unlink()
 
         manifest = WorkspaceManifest(
             workspace_id=workspace_id, product_id=product_id, status="imported",
@@ -119,6 +142,24 @@ class WorkspaceManager:
                        ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
         return manifest
+
+    @staticmethod
+    def _is_metadata_stub(target: Path, workspace_id: str, product_id: str) -> bool:
+        entries = {item.name for item in target.iterdir()}
+        if entries != {"workspace.json"}:
+            return False
+        try:
+            data = json.loads((target / "workspace.json").read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return False
+        return (
+            data.get("workspace_id") == workspace_id
+            and data.get("product_id") == product_id
+            and data.get("status") == "not_imported"
+            and data.get("source") is None
+            and data.get("changes_enabled") is False
+            and data.get("release_enabled") is False
+        )
 
     def create_change_backup(self, workspace_id: str) -> Path:
         target = self.workspace_path(workspace_id)
