@@ -8,11 +8,16 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 try:
     import gradio as gr
@@ -21,7 +26,6 @@ except ImportError:  # pragma: no cover - gives a useful CLI error when launched
 
 from modules.project_workspace.workspace_manager import WorkspaceError, WorkspaceManager
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
 BASE_DIR = Path(__file__).resolve().parent
 RUNTIME_DIR = BASE_DIR / "runtime"
 BACKUP_DIR = RUNTIME_DIR / "backups"

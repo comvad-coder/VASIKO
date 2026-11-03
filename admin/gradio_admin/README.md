@@ -15,11 +15,11 @@
 ## Запуск
 
 ```bash
-python3 -m pip install -r requirements.txt
-python3 admin/gradio_admin/app.py
+python3 -m pip install -r F:\Projects\vasiko\admin\gradio_admin\requirements.txt
+python F:\Projects\vasiko\admin\gradio_admin\app.py
 ```
 
-Точка запуска: `admin/gradio_admin/app.py`.
+Точка запуска: `F:\Projects\vasiko\admin\gradio_admin\app.py`. Альтернативный запуск из корня: `python -m admin.gradio_admin.app`.
 
 ## Разделы
 
