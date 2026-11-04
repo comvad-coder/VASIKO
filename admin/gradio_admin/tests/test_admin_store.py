@@ -123,12 +123,23 @@ def test_admin_start_checks_url_without_zip(tmp_path, monkeypatch):
             (Path(workspace_root) / "analysis" / "url-check-report.json").write_text("{}", encoding="utf-8")
             return FakeReport()
 
+    class FakeAnalysis:
+        model = "gpt-6-luna"
+        analysis = {"confidence": "medium"}
+
+    class FakeAnalysisSkill:
+        def analyze(self, report_path, workspace_root, task_id, objective):
+            assert Path(report_path).name == "url-check-report.json"
+            (Path(workspace_root) / "analysis" / "product-analysis-report.json").write_text("{}", encoding="utf-8")
+            return FakeAnalysis()
+
     monkeypatch.setattr(app, "WebsiteURLCheckSkill", FakeSkill)
+    monkeypatch.setattr(app, "ProductAnalysisSkill", FakeAnalysisSkill)
     store = AdminStore(WorkspaceManager(tmp_path / "workspaces"))
     task = store.create_task("Продвижение Palm", "Поиск клиентов", "https://palmast.netlify.app/")
 
     result = store.start(task.task_id)
 
     assert result.status == "checkpoint"
-    assert result.workspace_status == "url_checked"
+    assert result.workspace_status == "analysis_completed"
     assert "HTTP 200" in result.workspace_report

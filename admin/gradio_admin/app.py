@@ -1,7 +1,7 @@
 """VASIKO Gradio Admin with local, safe project workspace import.
 
-The Admin UI performs only local filesystem work in this block. It does not call
-external APIs, publish content, send messages, process payments, or use AI.
+The Admin UI performs local workspace work and approved read-only skill calls.
+It does not publish content, send messages, process payments, or mutate websites.
 """
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ except ImportError:  # pragma: no cover - gives a useful CLI error when launched
     gr = None
 
 from modules.project_workspace.workspace_manager import WorkspaceError, WorkspaceManager
+from skills.product_analysis import ProductAnalysisError, ProductAnalysisSkill
 from skills.website_url_check import URLInspectionError, WebsiteURLCheckSkill
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -191,20 +192,27 @@ class AdminStore:
             try:
                 report = WebsiteURLCheckSkill().inspect(
                     task.product_url,
-                    WORKSPACES_DIR / task.workspace_id,
+                    self.workspace_manager.root / task.workspace_id,
                     task.task_id,
                 )
-            except (URLInspectionError, OSError) as exc:
+                analysis = ProductAnalysisSkill().analyze(
+                    self.workspace_manager.root / task.workspace_id / "analysis" / "url-check-report.json",
+                    self.workspace_manager.root / task.workspace_id,
+                    task.task_id,
+                    task.objective,
+                )
+            except (URLInspectionError, ProductAnalysisError, OSError) as exc:
                 task.status = "blocked"
-                task.workspace_status = "url_check_failed"
+                task.workspace_status = "url_or_ai_analysis_failed"
                 task.workspace_report = str(exc)
                 task.updated_at = datetime.now(timezone.utc).isoformat()
                 self._log("url_check.failed", f"{task.task_id}:{exc}")
                 raise
-            task.workspace_status = "url_checked"
+            task.workspace_status = "analysis_completed"
             task.workspace_report = (
                 f"HTTP {report.status_code}; title={report.title or 'not found'}; "
-                f"links={report.link_count}; signals={','.join(report.technical_signals) or 'none'}"
+                f"links={report.link_count}; signals={','.join(report.technical_signals) or 'none'}; "
+                f"AI={analysis.model}; confidence={analysis.analysis.get('confidence', 'unknown')}"
             )
             task.status = "checkpoint"
             task.updated_at = datetime.now(timezone.utc).isoformat()
@@ -286,8 +294,8 @@ def start_action(task_id: str):
         task = STORE.start(_selected_task(task_id))
         if task.workspace_status == "imported":
             return STORE.rows(), f"ZIP импортирован в `{task.workspace_id}`: {task.workspace_report}. Реальные интеграции не вызываются."
-        if task.workspace_status == "url_checked":
-            return STORE.rows(), f"URL проверен в `{task.workspace_id}`: {task.workspace_report}. Отчёт сохранён в analysis."
+        if task.workspace_status == "analysis_completed":
+            return STORE.rows(), f"URL проверен, product analysis выполнен в `{task.workspace_id}`: {task.workspace_report}. Отчёты сохранены в analysis."
         return STORE.rows(), f"Запущена stub-задача `{task.task_id}`. Реальные интеграции не вызываются."
     except (KeyError, ValueError, WorkspaceError, OSError) as exc:
         return STORE.rows(), f"Ошибка запуска/import: {exc}"

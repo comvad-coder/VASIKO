@@ -27,4 +27,4 @@ python F:\Projects\vasiko\admin\gradio_admin\app.py
 
 Dashboard, Tasks, Products, Workspaces, Agents, Skills, Modules, Integrations, n8n, Promotion, Content, Video, Publications, Analytics, Approvals, Memory, Backups, Diagnostics, Recovery, Settings и Action Log.
 
-Функционально работают создание задачи, просмотр статусов, URL/ZIP входы, просмотр плана, approval, URL-check, ZIP import, остановка, журнал, backup и diagnostics. Остальные разделы являются явными заглушками.
+Функционально работают создание задачи, просмотр статусов, URL/ZIP входы, просмотр плана, approval, URL-check, built-in AI product analysis через skill, ZIP import, остановка, журнал, backup и diagnostics. Остальные разделы являются явными заглушками.
