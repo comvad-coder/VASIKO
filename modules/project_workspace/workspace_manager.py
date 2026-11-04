@@ -75,6 +75,7 @@ class WorkspaceManager:
         workspace_id: str,
         product_id: str = "external_product",
         allow_metadata_stub: bool = False,
+        archive_existing: bool = False,
     ) -> WorkspaceManifest:
         archive = Path(archive)
         self._validate_id(workspace_id)
@@ -88,12 +89,16 @@ class WorkspaceManager:
         target = self.workspace_path(workspace_id)
         metadata_stub: dict | None = None
         metadata_backup: Path | None = None
+        archived_workspace: Path | None = None
         if target.exists() and any(target.iterdir()):
-            if not allow_metadata_stub or not self._is_metadata_stub(target, workspace_id, product_id):
+            if archive_existing:
+                archived_workspace = self._archive_existing(target, workspace_id)
+            elif not allow_metadata_stub or not self._is_metadata_stub(target, workspace_id, product_id):
                 raise WorkspaceError(f"Workspace уже существует и не пуст: {workspace_id}")
-            metadata_stub = json.loads((target / "workspace.json").read_text(encoding="utf-8"))
-            metadata_backup = target.parent / f".{workspace_id}.pre-import-workspace.json"
-            shutil.copy2(target / "workspace.json", metadata_backup)
+            else:
+                metadata_stub = json.loads((target / "workspace.json").read_text(encoding="utf-8"))
+                metadata_backup = target.parent / f".{workspace_id}.pre-import-workspace.json"
+                shutil.copy2(target / "workspace.json", metadata_backup)
         target.mkdir(parents=True, exist_ok=True)
         for directory in ("original", "extracted", "analysis", "proposed-changes", "tests", "preview", "backups", "releases"):
             (target / directory).mkdir(parents=True, exist_ok=True)
@@ -124,6 +129,8 @@ class WorkspaceManager:
                 target.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(metadata_backup, target / "workspace.json")
                 metadata_backup.unlink(missing_ok=True)
+            elif archived_workspace is not None and archived_workspace.exists():
+                shutil.move(str(archived_workspace), str(target))
             raise WorkspaceError(f"Распаковка workspace не выполнена: {exc}") from exc
         finally:
             if metadata_backup is not None and metadata_backup.exists():
@@ -142,6 +149,18 @@ class WorkspaceManager:
                        ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
         return manifest
+
+    def _archive_existing(self, target: Path, workspace_id: str) -> Path:
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        archive_root = self.root / "_archive" / workspace_id
+        archive_root.mkdir(parents=True, exist_ok=True)
+        destination = archive_root / stamp
+        suffix = 1
+        while destination.exists():
+            destination = archive_root / f"{stamp}-{suffix}"
+            suffix += 1
+        shutil.move(str(target), str(destination))
+        return destination
 
     @staticmethod
     def _is_metadata_stub(target: Path, workspace_id: str, product_id: str) -> bool:

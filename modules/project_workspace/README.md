@@ -4,4 +4,4 @@
 
 Импорт создаёт `original/`, `extracted/`, `analysis/import-report.json`, `proposed-changes/`, `tests/`, `preview/`, `backups/` и `releases/`. Оригинал не изменяется.
 
-Существующий metadata-only workspace может быть заменён первым импортом только через явный `allow_metadata_stub=True`; прежний descriptor сохраняется в `backups/pre-import-workspace.json`. Path traversal, symlink, encrypted ZIP, secret-like files и превышение лимитов блокируются.
+Существующий непустой workspace при запуске из Admin сначала переносится в `workspaces/projects/_archive/<workspace-id>/<timestamp>/`, затем новый импорт создаётся в исходном пути. Metadata-only workspace также сохраняется как backup. При ошибке распаковки старый workspace возвращается обратно. Path traversal, symlink, encrypted ZIP, secret-like files и превышение лимитов блокируются.

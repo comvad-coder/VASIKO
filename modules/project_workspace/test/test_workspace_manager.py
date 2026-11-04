@@ -76,3 +76,26 @@ def test_metadata_stub_can_be_replaced_and_is_backed_up(tmp_path):
     assert manifest.status == "imported"
     assert (workspace / "extracted" / "src" / "index.js").read_text() == "ok"
     assert (workspace / "backups" / "pre-import-workspace.json").is_file()
+
+
+def test_nonempty_workspace_is_archived_before_reimport(tmp_path):
+    workspace_root = tmp_path / "workspaces"
+    workspace = workspace_root / "vasiko_skill_marketing_v0"
+    workspace.mkdir(parents=True)
+    (workspace / "old-result.txt").write_text("keep me", encoding="utf-8")
+    archive = tmp_path / "new.zip"
+    make_zip(archive, {"README.md": "new workspace"})
+
+    manager = WorkspaceManager(workspace_root)
+    manifest = manager.import_zip(
+        archive,
+        "vasiko_skill_marketing_v0",
+        "external_product",
+        archive_existing=True,
+    )
+
+    assert manifest.status == "imported"
+    assert (workspace / "extracted" / "README.md").read_text() == "new workspace"
+    archived = list((workspace_root / "_archive" / "vasiko_skill_marketing_v0").glob("*/old-result.txt"))
+    assert len(archived) == 1
+    assert archived[0].read_text() == "keep me"

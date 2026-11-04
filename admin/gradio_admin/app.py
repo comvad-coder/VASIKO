@@ -142,6 +142,7 @@ class AdminStore:
                     task.workspace_id,
                     task.product_id,
                     allow_metadata_stub=True,
+                    archive_existing=True,
                 )
             except (WorkspaceError, OSError) as exc:
                 task.status = "blocked"
