@@ -8,6 +8,8 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from integrations.n8n_gateway.http_client import N8nHTTPError, N8nWebhookClient
+
 
 class ProductAnalysisError(ValueError):
     """Raised when the built-in AI analysis cannot be completed."""
@@ -45,6 +47,23 @@ class ProductAnalysisSkill:
             "product_url": report.get("requested_url", ""),
             "url_check_report": report,
         }
+        n8n = N8nWebhookClient()
+        if n8n.enabled:
+            try:
+                result = n8n.product_analysis(payload)
+            except N8nHTTPError as exc:
+                raise ProductAnalysisError(str(exc)) from exc
+            output = ProductAnalysisResult(
+                task_id=task_id,
+                product_url=report.get("requested_url", ""),
+                provider=result.get("provider", "n8n-local"),
+                model=result.get("model", "n8n-workflow"),
+                analyzed_at=datetime.now(timezone.utc).isoformat(),
+                analysis=result["analysis"],
+                usage=result.get("usage"),
+            )
+            self._write_reports(Path(workspace_root), output)
+            return output
         env = os.environ.copy()
         try:
             completed = subprocess.run(

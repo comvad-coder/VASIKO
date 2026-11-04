@@ -1,0 +1,101 @@
+{
+  "name": "VASIKO - Product Analysis",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vasiko/product-analysis",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "vasiko-webhook-product-analysis",
+      "name": "VASIKO Product Analysis Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-760, 0],
+      "webhookId": "vasiko-product-analysis"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json.body ?? $json;\nconst report = input.url_check_report ?? {};\nconst prompt = `Analyze only the supplied website inspection. Do not invent facts.\nObjective: ${input.objective ?? ''}\nURL: ${input.product_url ?? ''}\nHTTP status: ${report.status_code ?? ''}\nTitle: ${report.title ?? ''}\nMeta description: ${report.meta_description ?? ''}\nH1: ${(report.h1 ?? []).join(', ')}\nLinks: ${report.link_count ?? 0}\nTechnical signals: ${(report.technical_signals ?? []).join(', ')}\nNotes: ${(report.notes ?? []).join('; ')}\nReturn JSON with keys: executive_summary, product_positioning, target_audience, value_propositions, strengths, risks_and_gaps, recommended_channels, next_internal_actions, confidence.`;\nreturn [{ json: { task_id: input.task_id ?? '', product_url: input.product_url ?? '', prompt } }];"
+      },
+      "id": "vasiko-prepare-analysis",
+      "name": "Prepare Analysis Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-520, 0]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "complete",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are VASIKO product analyst. Return valid JSON only. No external actions."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.prompt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "vasiko-openai-analysis",
+      "name": "AI Product Analysis",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.2,
+      "position": [-240, 0],
+      "credentials": {
+        "openAiApi": {
+          "id": "",
+          "name": "VASIKO_AI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $json;\nconst raw = source.message?.content ?? source.text ?? source.response ?? source;\nlet analysis = raw;\nif (typeof raw === 'string') {\n  const clean = raw.replace(/^```json\\s*/i, '').replace(/\\s*```$/i, '').trim();\n  try { analysis = JSON.parse(clean); } catch { analysis = { executive_summary: clean, product_positioning: '', target_audience: [], value_propositions: [], strengths: [], risks_and_gaps: ['AI returned non-JSON text; review required'], recommended_channels: [], next_internal_actions: [], confidence: 'low' }; }\n}\nreturn [{ json: { provider: 'n8n-local', model: 'configured-n8n-ai', analysis } }];"
+      },
+      "id": "vasiko-normalize-analysis",
+      "name": "Normalize Analysis JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [20, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "vasiko-respond-analysis",
+      "name": "Return Product Analysis",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [280, 0]
+    }
+  ],
+  "connections": {
+    "VASIKO Product Analysis Webhook": {
+      "main": [[{"node": "Prepare Analysis Prompt", "type": "main", "index": 0}]]
+    },
+    "Prepare Analysis Prompt": {
+      "main": [[{"node": "AI Product Analysis", "type": "main", "index": 0}]]
+    },
+    "AI Product Analysis": {
+      "main": [[{"node": "Normalize Analysis JSON", "type": "main", "index": 0}]]
+    },
+    "Normalize Analysis JSON": {
+      "main": [[{"node": "Return Product Analysis", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "vasiko-product-analysis-v1",
+  "meta": {"templateCredsSetupCompleted": false},
+  "tags": []
+}
