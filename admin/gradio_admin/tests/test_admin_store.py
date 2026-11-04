@@ -84,3 +84,16 @@ def test_admin_start_blocks_secret_zip(tmp_path):
 
     assert store.tasks[task.task_id].status == "blocked"
     assert store.tasks[task.task_id].workspace_status == "import_failed"
+
+
+def test_admin_state_survives_store_restart(tmp_path):
+    state_file = tmp_path / "runtime" / "admin-state.json"
+    first = AdminStore(state_file=state_file)
+    task = first.create_task("Продвижение Palm", "Поиск клиентов")
+    first.approve(task.task_id)
+
+    second = AdminStore(state_file=state_file)
+
+    assert second.tasks[task.task_id].status == "planned"
+    assert second.approvals[0]["task_id"] == task.task_id
+    assert any(item["action"] == "approval.granted" for item in second.audit)

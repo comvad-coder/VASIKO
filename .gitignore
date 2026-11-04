@@ -5,6 +5,8 @@ __pycache__/
 .env
 .env.*
 admin/gradio_admin/runtime/backups/*.json
+admin/gradio_admin/runtime/admin-state.json
+admin/gradio_admin/runtime/admin-state.tmp
 tasks/records/*.json
 memory/*/records.jsonl
 memory/exports/*.json

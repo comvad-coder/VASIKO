@@ -1,0 +1,12 @@
+{
+  "workspace_id": "vasiko_skill_marketing_v01",
+  "product_id": "external_product",
+  "status": "imported",
+  "created_at": "2026-11-04T13:24:54.895301+00:00",
+  "source_archive_sha256": "230405ad15892994b13334bb0a213cb950acffcf3dc4e1ef5c8aee0e60e38012",
+  "file_count": 17,
+  "uncompressed_bytes": 37655,
+  "detected_stacks": [],
+  "source_name": "vasiko_skill_marketing_v01.zip",
+  "backup_count": 0
+}

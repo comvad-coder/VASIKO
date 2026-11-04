@@ -29,6 +29,7 @@ from modules.project_workspace.workspace_manager import WorkspaceError, Workspac
 BASE_DIR = Path(__file__).resolve().parent
 RUNTIME_DIR = BASE_DIR / "runtime"
 BACKUP_DIR = RUNTIME_DIR / "backups"
+STATE_FILE = RUNTIME_DIR / "admin-state.json"
 WORKSPACES_DIR = PROJECT_ROOT / "workspaces" / "projects"
 
 TASK_STATUSES = (
@@ -61,11 +62,13 @@ class Task:
 class AdminStore:
     """Local Admin adapter for Core and project workspace services."""
 
-    def __init__(self, workspace_manager: WorkspaceManager | None = None) -> None:
+    def __init__(self, workspace_manager: WorkspaceManager | None = None, state_file: str | Path | None = None) -> None:
         self.tasks: dict[str, Task] = {}
         self.audit: list[dict[str, str]] = []
         self.approvals: list[dict[str, str]] = []
         self.workspace_manager = workspace_manager or WorkspaceManager(WORKSPACES_DIR)
+        self.state_file = Path(state_file) if state_file else None
+        self._load_state()
 
     def _log(self, action: str, details: str) -> None:
         self.audit.insert(0, {
@@ -73,6 +76,28 @@ class AdminStore:
             "action": action,
             "details": details,
         })
+        self._persist_state()
+
+    def _persist_state(self) -> None:
+        if self.state_file is None:
+            return
+        self.state_file.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.state_file.with_suffix(".tmp")
+        temporary.write_text(json.dumps(self.snapshot(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        temporary.replace(self.state_file)
+
+    def _load_state(self) -> None:
+        if self.state_file is None or not self.state_file.is_file():
+            return
+        try:
+            saved = json.loads(self.state_file.read_text(encoding="utf-8"))
+            self.tasks = {item["task_id"]: Task(**item) for item in saved.get("tasks", [])}
+            self.approvals = list(saved.get("approvals", []))
+            self.audit = list(saved.get("audit", []))
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+            self.tasks = {}
+            self.approvals = []
+            self.audit = []
 
     @staticmethod
     def _product_id(title: str, objective: str, zip_path: str | None) -> str:
@@ -196,7 +221,7 @@ class AdminStore:
         return checks
 
 
-STORE = AdminStore()
+STORE = AdminStore(state_file=STATE_FILE)
 
 
 def _selected_task(task_id: str) -> str:
