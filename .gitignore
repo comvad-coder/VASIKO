@@ -12,3 +12,12 @@ memory/*/records.jsonl
 memory/exports/*.json
 backups/*/*.tar.gz
 backups/*/*.tar.gz.manifest.json
+workspaces/projects/_archive/
+workspaces/projects/*/original/
+workspaces/projects/*/extracted/
+workspaces/projects/*/analysis/
+workspaces/projects/*/proposed-changes/
+workspaces/projects/*/tests/
+workspaces/projects/*/preview/
+workspaces/projects/*/backups/
+workspaces/projects/*/releases/

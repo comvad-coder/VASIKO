@@ -3,7 +3,7 @@ import zipfile
 
 import pytest
 
-from admin.gradio_admin.app import AdminStore, TASK_STATUSES
+from admin.gradio_admin.app import AdminStore, TASK_STATUSES, create_task_action
 from modules.project_workspace.workspace_manager import WorkspaceManager
 
 
@@ -97,3 +97,38 @@ def test_admin_state_survives_store_restart(tmp_path):
     assert second.tasks[task.task_id].status == "planned"
     assert second.approvals[0]["task_id"] == task.task_id
     assert any(item["action"] == "approval.granted" for item in second.audit)
+
+
+def test_create_task_action_clears_form_after_success():
+    result = create_task_action("Новая задача", "Новая цель", "https://example.test", None)
+
+    assert result[1].startswith("task-")
+    assert result[3:] == ("", "", "", None)
+
+
+def test_admin_start_checks_url_without_zip(tmp_path, monkeypatch):
+    import admin.gradio_admin.app as app
+
+    class FakeReport:
+        status_code = 200
+        title = "Palm"
+        link_count = 3
+        technical_signals = ["html"]
+
+    class FakeSkill:
+        def inspect(self, url, workspace_root, task_id):
+            assert url == "https://palmast.netlify.app/"
+            assert Path(workspace_root).name == "palm-site"
+            (Path(workspace_root) / "analysis").mkdir(parents=True, exist_ok=True)
+            (Path(workspace_root) / "analysis" / "url-check-report.json").write_text("{}", encoding="utf-8")
+            return FakeReport()
+
+    monkeypatch.setattr(app, "WebsiteURLCheckSkill", FakeSkill)
+    store = AdminStore(WorkspaceManager(tmp_path / "workspaces"))
+    task = store.create_task("Продвижение Palm", "Поиск клиентов", "https://palmast.netlify.app/")
+
+    result = store.start(task.task_id)
+
+    assert result.status == "checkpoint"
+    assert result.workspace_status == "url_checked"
+    assert "HTTP 200" in result.workspace_report

@@ -4,10 +4,12 @@
 
 ## Границы
 
-- локальный in-memory stub вместо Core;
+- локальный Admin adapter с persistent JSON state вместо полноценного Core;
 - локальные JSON snapshots вместо полноценного Backup Service;
 - диагностика показывает состояние заглушек;
 - URL принимается как вход; ZIP после создания задачи импортируется кнопкой «Запустить» через `project_workspace`;
+- URL-задача после создания и подтверждения запускает read-only `website_url_check` skill, а не stub;
+- URL-отчёты сохраняются в `workspaces/projects/<workspace-id>/analysis/url-check-report.json` и `.md`;
 - оригинал сохраняется в `workspaces/projects/<workspace-id>/original/`, копия распаковывается в `extracted/`, отчёт создаётся в `analysis/import-report.json`;
 - небезопасные ZIP блокируются, а задача получает статус `blocked`;
 - публикации, рассылки, платежи, аккаунты и реальные credentials отсутствуют.
@@ -25,4 +27,4 @@ python F:\Projects\vasiko\admin\gradio_admin\app.py
 
 Dashboard, Tasks, Products, Workspaces, Agents, Skills, Modules, Integrations, n8n, Promotion, Content, Video, Publications, Analytics, Approvals, Memory, Backups, Diagnostics, Recovery, Settings и Action Log.
 
-Функционально работают создание задачи, просмотр статусов, URL/ZIP входы, просмотр плана, approval, запуск с ZIP import, остановка, журнал, backup и diagnostics. Остальные разделы являются явными заглушками.
+Функционально работают создание задачи, просмотр статусов, URL/ZIP входы, просмотр плана, approval, URL-check, ZIP import, остановка, журнал, backup и diagnostics. Остальные разделы являются явными заглушками.

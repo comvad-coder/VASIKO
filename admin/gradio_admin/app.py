@@ -25,6 +25,7 @@ except ImportError:  # pragma: no cover - gives a useful CLI error when launched
     gr = None
 
 from modules.project_workspace.workspace_manager import WorkspaceError, WorkspaceManager
+from skills.website_url_check import URLInspectionError, WebsiteURLCheckSkill
 
 BASE_DIR = Path(__file__).resolve().parent
 RUNTIME_DIR = BASE_DIR / "runtime"
@@ -186,6 +187,29 @@ class AdminStore:
             self._log("workspace.imported", f"{task.task_id}:{task.workspace_id}")
             self._log("task.running", task.task_id)
             return task
+        if task.product_url:
+            try:
+                report = WebsiteURLCheckSkill().inspect(
+                    task.product_url,
+                    WORKSPACES_DIR / task.workspace_id,
+                    task.task_id,
+                )
+            except (URLInspectionError, OSError) as exc:
+                task.status = "blocked"
+                task.workspace_status = "url_check_failed"
+                task.workspace_report = str(exc)
+                task.updated_at = datetime.now(timezone.utc).isoformat()
+                self._log("url_check.failed", f"{task.task_id}:{exc}")
+                raise
+            task.workspace_status = "url_checked"
+            task.workspace_report = (
+                f"HTTP {report.status_code}; title={report.title or 'not found'}; "
+                f"links={report.link_count}; signals={','.join(report.technical_signals) or 'none'}"
+            )
+            task.status = "checkpoint"
+            task.updated_at = datetime.now(timezone.utc).isoformat()
+            self._log("url_check.completed", f"{task.task_id}:{task.workspace_id}")
+            return task
         return self.update_status(task_id, "running")
 
     def rows(self) -> list[list[str]]:
@@ -236,9 +260,9 @@ def create_task_action(title: str, objective: str, url: str, zip_file: Any):
         path = getattr(zip_file, "name", None) or (zip_file if isinstance(zip_file, str) else None)
         task = STORE.create_task(title, objective, url, path)
         message = f"Создана задача `{task.task_id}` со статусом `{task.status}`. ZIP зарегистрирован; импорт будет выполнен кнопкой «Запустить»."
-        return STORE.rows(), task.task_id, message
+        return STORE.rows(), task.task_id, message, "", "", "", None
     except (ValueError, TypeError) as exc:
-        return STORE.rows(), "", f"Ошибка: {exc}"
+        return STORE.rows(), "", f"Ошибка: {exc}", title, objective, url, zip_file
 
 
 def plan_action(task_id: str):
@@ -262,6 +286,8 @@ def start_action(task_id: str):
         task = STORE.start(_selected_task(task_id))
         if task.workspace_status == "imported":
             return STORE.rows(), f"ZIP импортирован в `{task.workspace_id}`: {task.workspace_report}. Реальные интеграции не вызываются."
+        if task.workspace_status == "url_checked":
+            return STORE.rows(), f"URL проверен в `{task.workspace_id}`: {task.workspace_report}. Отчёт сохранён в analysis."
         return STORE.rows(), f"Запущена stub-задача `{task.task_id}`. Реальные интеграции не вызываются."
     except (KeyError, ValueError, WorkspaceError, OSError) as exc:
         return STORE.rows(), f"Ошибка запуска/import: {exc}"
@@ -330,7 +356,11 @@ def build_app():
                 stop_btn = gr.Button("Остановить")
             plan_out = gr.Markdown()
             task_out = gr.Markdown()
-            create_btn.click(create_task_action, [title, objective, url, zip_file], [task_table, selected, task_out])
+            create_btn.click(
+                create_task_action,
+                [title, objective, url, zip_file],
+                [task_table, selected, task_out, title, objective, url, zip_file],
+            )
             plan_btn.click(plan_action, selected, [plan_out, task_out])
             approve_btn.click(approve_action, selected, [task_table, task_out])
             start_btn.click(start_action, selected, [task_table, task_out])
